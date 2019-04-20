@@ -66,7 +66,7 @@ class MainDialog extends ComponentDialog {
         }
 
         if (userInput.intent === 'Greeting') {
-            await stepContext.context.sendActivity('Howdy!\nI can find places to eat.');
+            await stepContext.context.sendActivity('Howdy!\nI can help you with places to eat.');
             return await stepContext.endDialog();
         }        
 
@@ -88,23 +88,42 @@ class MainDialog extends ComponentDialog {
 
         if (userInput.intent === 'Places_FindPlace') {
             const businesses = await yelpSearch(userInput.searchKeyword);
-            for (let i = 0; i < businesses.length; i++) {
-                const biz = businesses[i];
-                const businessInfo = `${biz.name}\n${biz.location.address1}\n${biz.display_phone}`
+            const length = businesses.length;
+
+            if (length === 0) {
                 await stepContext.context.sendActivity({
-                    text: businessInfo,
+                    text: 'Sorry, I can\' find anything.',
                     attachments: [{
-                        "contentType": "image/jpg",
+                        "contentType": 'image/jpg',
+                        "contentUrl": 'https://g5logo.blob.core.windows.net/logo/what_qqq.jpg',
+                        "name": 'What???'
+                    }]
+                });
+                return await stepContext.endDialog();
+            }
+
+            for (let i = 0; i < length; i++) {
+                const biz = businesses[i];
+                await stepContext.context.sendActivity({
+                    text: `${biz.name}\n${biz.location.address1}\n${biz.display_phone}`,
+                    attachments: [{
+                        "contentType": 'image/jpg',
                         "contentUrl": `${biz.image_url}`,
                         "name": `${biz.name}`
                     }]
                 });
-            }
+            }            
+            await stepContext.context.sendActivity({ text: 'Thank you.' });
+            return await stepContext.endDialog();
         }
 
-        // await stepContext.context.sendActivity('Thank you.');
         await stepContext.context.sendActivity({
-            text: "Thank you."
+            text: 'What are you talking about?',
+            attachments: [{
+                "contentType": 'image/jpg',
+                "contentUrl": 'https://g5logo.blob.core.windows.net/logo/what_qqq.jpg',
+                "name": 'What???'
+            }]
         });
         return await stepContext.endDialog();
     }
