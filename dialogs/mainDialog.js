@@ -3,9 +3,7 @@
 
 const { TimexProperty } = require('@microsoft/recognizers-text-data-types-timex-expression');
 const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
-// const { BookingDialog } = require('./bookingDialog');
 const { LuisHelper } = require('./luisHelper');
-
 const { yelpSearch } = require('../Yelp/yelp');
 
 const MAIN_WATERFALL_DIALOG = 'mainWaterfallDialog';
@@ -23,14 +21,10 @@ class MainDialog extends ComponentDialog {
         this.logger = logger;
 
         // Define the main dialog and its related components.
-        // This is a sample "book a flight" dialog.
         this.addDialog(new TextPrompt('TextPrompt'))
-            // .addDialog(new BookingDialog(BOOKING_DIALOG))
             .addDialog(new WaterfallDialog(MAIN_WATERFALL_DIALOG, [
                 this.introStep.bind(this),
                 this.actStep.bind(this)
-                // ,
-                // this.finalStep.bind(this)
             ]));
 
         this.initialDialogId = MAIN_WATERFALL_DIALOG;
@@ -64,31 +58,25 @@ class MainDialog extends ComponentDialog {
             return await stepContext.next();
         }
 
-        return await stepContext.prompt('TextPrompt', { prompt: 'Howdy!\nWhat can I help you with today?' });
+        let userInput = {};
+        if (process.env.LuisAppId && process.env.LuisAPIKey && process.env.LuisAPIHostName) {
+            // Call LUIS and gather user intents.
+            userInput = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
+            this.logger.log('LUIS extracted these info:', userInput);
+        }
+
+        if (userInput.intent === 'Greeting') {
+            await stepContext.context.sendActivity('Howdy!\nI can find places to eat.');
+            return await stepContext.endDialog();
+        }        
+
+        if (userInput.intent === 'Places_FindPlace') {
+            return await stepContext.next();
+        }
+
+        return await stepContext.prompt('TextPrompt', { prompt: 'What can I help you with today?' });
     }
 
-    /**
-     * Second step in the waterall.  This will use LUIS to attempt to extract the origin, destination and travel dates.
-     * Then, it hands off to the bookingDialog child dialog to collect any remaining details.
-     */
-    // async actStep(stepContext) {
-    //     let bookingDetails = {};
-
-    //     if (process.env.LuisAppId && process.env.LuisAPIKey && process.env.LuisAPIHostName) {
-    //         // Call LUIS and gather any potential booking details.
-    //         // This will attempt to extract the origin, destination and travel date from the user's message
-    //         // and will then pass those values into the booking dialog
-    //         bookingDetails = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
-
-    //         this.logger.log('LUIS extracted these booking details:', bookingDetails);
-    //     }
-
-    //     // In this sample we only have a single intent we are concerned with. However, typically a scenario
-    //     // will have multiple different intents each corresponding to starting a different child dialog.
-
-    //     // Run the BookingDialog giving it whatever details we have from the LUIS call, it will fill out the remainder.
-    //     return await stepContext.beginDialog('bookingDialog', bookingDetails);
-    // }
     async actStep(stepContext) {
         let userInput = {};
         
@@ -98,14 +86,26 @@ class MainDialog extends ComponentDialog {
             this.logger.log('LUIS extracted these info:', userInput);
         }
 
-        const businesses = await yelpSearch(userInput.searchKeyword);
-        for (let i = 0; i < businesses.length; i++) {
-            const biz = businesses[i];
-            const businessInfo = `${biz.name}\n${biz.location.address1}\n${biz.display_phone}`
-            await stepContext.context.sendActivity(businessInfo);
+        if (userInput.intent === 'Places_FindPlace') {
+            const businesses = await yelpSearch(userInput.searchKeyword);
+            for (let i = 0; i < businesses.length; i++) {
+                const biz = businesses[i];
+                const businessInfo = `${biz.name}\n${biz.location.address1}\n${biz.display_phone}`
+                await stepContext.context.sendActivity({
+                    text: businessInfo,
+                    attachments: [{
+                        "contentType": "image/jpg",
+                        "contentUrl": `${biz.image_url}`,
+                        "name": `${biz.name}`
+                    }]
+                });
+            }
         }
 
-        await stepContext.context.sendActivity('Thank you.');
+        // await stepContext.context.sendActivity('Thank you.');
+        await stepContext.context.sendActivity({
+            text: "Thank you."
+        });
         return await stepContext.endDialog();
     }
 }
