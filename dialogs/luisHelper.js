@@ -42,7 +42,7 @@ class LuisHelper {
     // }
 
     static async executeLuisQuery(logger, context) {
-        const userInput = {};
+        const userInput = { searchKeyword: '' };
 
         try {
             const recognizer = new LuisRecognizer({
@@ -55,21 +55,26 @@ class LuisHelper {
 
             const intent = LuisRecognizer.topIntent(recognizerResult);
 
-            if (intent === 'Greeting') {
-                userInput.intent = intent;
+            userInput.intent = intent;
+
+            if (intent === 'News') {
+                const topics = recognizerResult.entities.newsTopic;
+                if (topics !== undefined && topics.length > 0) {
+                    userInput.searchKeyword = topics.join(' ');
+                } else {
+                    userInput.searchKeyword = recognizerResult.text;
+                }                
             }
 
             if (intent === 'Places_FindPlace') {
-                userInput.intent = intent;
-                userInput.searchKeyword = '';
-                if (recognizerResult.entities.Places_PlaceType !== undefined) {
-                    if (recognizerResult.entities.Places_PlaceType.length > 0) {
-                        userInput.searchKeyword += recognizerResult.entities.Places_PlaceType[0];
-                    }
+                const placeType = recognizerResult.entities.Places_PlaceType;
+                if (placeType !== undefined && placeType.length > 0) {
+                    userInput.searchKeyword += placeType[0];
                 }
                 if (recognizerResult.entities.geographyV2 !== undefined) {
                     if (recognizerResult.entities.geographyV2.length > 0) {
-                        userInput.searchKeyword = userInput.searchKeyword + ' near ' + recognizerResult.entities.geographyV2[0];
+                        userInput.searchKeyword = userInput.searchKeyword 
+                            + ' near ' + recognizerResult.entities.geographyV2[0];
                     }
                 }
                 if (userInput.searchKeyword.length === 0) {

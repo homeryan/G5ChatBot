@@ -4,7 +4,9 @@
 const { TimexProperty } = require('@microsoft/recognizers-text-data-types-timex-expression');
 const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 const { LuisHelper } = require('./luisHelper');
-const { yelpSearch } = require('../ExternalAPIs/yelp');
+const { yelpSearch } = require('../utils/yelp');
+const { newsSearch } = require('../utils/bingNewsSearch');
+const { createCard } = require('../utils/card');
 
 const MAIN_WATERFALL_DIALOG = 'mainWaterfallDialog';
 // const BOOKING_DIALOG = 'bookingDialog';
@@ -66,11 +68,12 @@ class MainDialog extends ComponentDialog {
         }
 
         if (userInput.intent === 'Greeting') {
-            await stepContext.context.sendActivity('Howdy!\nI can help you with places to eat.');
+            await stepContext.context.sendActivity('Howdy!\nI can help you with places to eat. I can tell you news.');
             return await stepContext.endDialog();
         }        
 
-        if (userInput.intent === 'Places_FindPlace') {
+        if (userInput.intent === 'Places_FindPlace' ||
+            userInput.intent === 'News') {
             return await stepContext.next();
         }
 
@@ -84,6 +87,22 @@ class MainDialog extends ComponentDialog {
             // Call LUIS and gather user intents.
             userInput = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
             this.logger.log('LUIS extracted these info:', userInput);
+        }
+
+        if (userInput.intent === 'News') {
+            const newsItems = await newsSearch(userInput.searchKeyword);
+            const itemNumbers = (newsItems.length > 5) ? 5 : newsItems.length;
+            for (let i = 0; i < itemNumbers; i++) {
+                const newsItem = newsItems[i];
+                const imgUrl = (newsItem.image === undefined) ? '' : newsItem.image.thumbnail.contentUrl;
+                const card = createCard(imgUrl, 
+                    newsItem.description,
+                    newsItem.name,
+                    newsItem.url);
+                await stepContext.context.sendActivity({ attachments: [card] });
+            }
+
+            return await stepContext.endDialog();
         }
 
         if (userInput.intent === 'Places_FindPlace') {
@@ -104,14 +123,12 @@ class MainDialog extends ComponentDialog {
 
             for (let i = 0; i < length; i++) {
                 const biz = businesses[i];
-                await stepContext.context.sendActivity({
-                    text: `${biz.name}\n${biz.location.address1}\n${biz.display_phone}`,
-                    attachments: [{
-                        "contentType": 'image/jpg',
-                        "contentUrl": `${biz.image_url}`,
-                        "name": `${biz.name}`
-                    }]
-                });
+                const bizInfo = biz.rating + ' Stars\n' 
+                    + biz.price + '\n'
+                    + biz.location.display_address.join(' ') + '\n'
+                    + biz.display_phone;
+                const card = createCard(biz.image_url, bizInfo, biz.name, biz.url);
+                await stepContext.context.sendActivity({ attachments: [card] });
             }            
             await stepContext.context.sendActivity({ text: 'Thank you.' });
             return await stepContext.endDialog();

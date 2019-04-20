@@ -13,10 +13,12 @@
     },
     "dependencies": {
         "@microsoft/recognizers-text-data-types-timex-expression": "^1.1.4",
+        "azure-cognitiveservices-newssearch": "^2.0.0",
         "botbuilder": "^4.3.4",
         "botbuilder-ai": "^4.3.4",
         "botbuilder-dialogs": "^4.3.4",
         "dotenv": "^6.1.0",
+        "ms-rest-azure": "^2.6.0",
         "restify": "^7.2.3",
         "yelp-fusion": "^3.0.0"
     },
