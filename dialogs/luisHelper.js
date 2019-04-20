@@ -9,8 +9,40 @@ class LuisHelper {
      * @param {*} logger
      * @param {TurnContext} context
      */
+    // static async executeLuisQuery(logger, context) {
+    //     const bookingDetails = {};
+
+    //     try {
+    //         const recognizer = new LuisRecognizer({
+    //             applicationId: process.env.LuisAppId,
+    //             endpointKey: process.env.LuisAPIKey,
+    //             endpoint: `https://${ process.env.LuisAPIHostName }`
+    //         }, {}, true);
+
+    //         const recognizerResult = await recognizer.recognize(context);
+
+    //         const intent = LuisRecognizer.topIntent(recognizerResult);
+
+    //         bookingDetails.intent = intent;
+
+    //         if (intent === 'Book_flight') {
+    //             // We need to get the result from the LUIS JSON which at every level returns an array
+
+    //             bookingDetails.destination = LuisHelper.parseCompositeEntity(recognizerResult, 'To', 'Airport');
+    //             bookingDetails.origin = LuisHelper.parseCompositeEntity(recognizerResult, 'From', 'Airport');
+
+    //             // This value will be a TIMEX. And we are only interested in a Date so grab the first result and drop the Time part.
+    //             // TIMEX is a format that represents DateTime expressions that include some ambiguity. e.g. missing a Year.
+    //             bookingDetails.travelDate = LuisHelper.parseDatetimeEntity(recognizerResult);
+    //         }
+    //     } catch (err) {
+    //         logger.warn(`LUIS Exception: ${ err } Check your LUIS configuration`);
+    //     }
+    //     return bookingDetails;
+    // }
+
     static async executeLuisQuery(logger, context) {
-        const bookingDetails = {};
+        const userInput = {};
 
         try {
             const recognizer = new LuisRecognizer({
@@ -23,22 +55,31 @@ class LuisHelper {
 
             const intent = LuisRecognizer.topIntent(recognizerResult);
 
-            bookingDetails.intent = intent;
+            if (intent === 'Greeting') {
+                userInput.intent = intent;
+            }
 
-            if (intent === 'Book_flight') {
-                // We need to get the result from the LUIS JSON which at every level returns an array
-
-                bookingDetails.destination = LuisHelper.parseCompositeEntity(recognizerResult, 'To', 'Airport');
-                bookingDetails.origin = LuisHelper.parseCompositeEntity(recognizerResult, 'From', 'Airport');
-
-                // This value will be a TIMEX. And we are only interested in a Date so grab the first result and drop the Time part.
-                // TIMEX is a format that represents DateTime expressions that include some ambiguity. e.g. missing a Year.
-                bookingDetails.travelDate = LuisHelper.parseDatetimeEntity(recognizerResult);
+            if (intent === 'Places_FindPlace') {
+                userInput.intent = intent;
+                userInput.searchKeyword = '';
+                if (recognizerResult.entities.Places_PlaceType !== undefined) {
+                    if (recognizerResult.entities.Places_PlaceType.length > 0) {
+                        userInput.searchKeyword += recognizerResult.entities.Places_PlaceType[0];
+                    }
+                }
+                if (recognizerResult.entities.geographyV2 !== undefined) {
+                    if (recognizerResult.entities.geographyV2.length > 0) {
+                        userInput.searchKeyword = userInput.searchKeyword + ' near ' + recognizerResult.entities.geographyV2[0];
+                    }
+                }
+                if (userInput.searchKeyword.length === 0) {
+                    userInput.searchKeyword = recognizerResult.text;
+                }
             }
         } catch (err) {
             logger.warn(`LUIS Exception: ${ err } Check your LUIS configuration`);
         }
-        return bookingDetails;
+        return userInput;
     }
 
     static parseCompositeEntity(result, compositeName, entityName) {
