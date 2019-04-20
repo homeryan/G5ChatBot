@@ -127,7 +127,7 @@ class MainDialog extends ComponentDialog {
                     + biz.price + '\n'
                     + biz.location.display_address.join(' ') + '\n'
                     + biz.display_phone;
-                const card = createCard(biz.image_url, bizInfo, biz.name, biz.url);
+                const card = createCard(biz.image_url, bizInfo, biz.name, biz.url, 'stretch');
                 await stepContext.context.sendActivity({ attachments: [card] });
             }            
             await stepContext.context.sendActivity({ text: 'Thank you.' });
