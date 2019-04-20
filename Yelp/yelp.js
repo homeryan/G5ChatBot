@@ -4,7 +4,8 @@ const apiKey = 't6s-oG23KMKya65umm9QBUJ0UVEqHYqqdPhm7L6IDzgyl1nDTs3PuTvhBgCmi7DP
 async function search(keyword) {
   const searchRequest = {
     term: keyword,
-    location: 'calary, alberta, canada'
+    location: 'calary, alberta, canada',
+    limit: 10
   };
 
   const client = yelp.client(apiKey);
