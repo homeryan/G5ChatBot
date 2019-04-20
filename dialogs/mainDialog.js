@@ -4,7 +4,7 @@
 const { TimexProperty } = require('@microsoft/recognizers-text-data-types-timex-expression');
 const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 const { LuisHelper } = require('./luisHelper');
-const { yelpSearch } = require('../Yelp/yelp');
+const { yelpSearch } = require('../ExternalAPIs/yelp');
 
 const MAIN_WATERFALL_DIALOG = 'mainWaterfallDialog';
 // const BOOKING_DIALOG = 'bookingDialog';
