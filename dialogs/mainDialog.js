@@ -124,7 +124,7 @@ class MainDialog extends ComponentDialog {
             for (let i = 0; i < length; i++) {
                 const biz = businesses[i];
                 const bizInfo = biz.rating + ' Stars\n' 
-                    + biz.price + '\n'
+                    + ((biz.price === undefined) ? '' : biz.price) + '\n'
                     + biz.location.display_address.join(' ') + '\n'
                     + biz.display_phone;
                 const card = createCard(biz.image_url, bizInfo, biz.name, biz.url, 'stretch');
