@@ -83,65 +83,70 @@ class MainDialog extends ComponentDialog {
     async actStep(stepContext) {
         let userInput = {};
         
-        if (process.env.LuisAppId && process.env.LuisAPIKey && process.env.LuisAPIHostName) {
-            // Call LUIS and gather user intents.
-            userInput = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
-            this.logger.log('LUIS extracted these info:', userInput);
-        }
-
-        if (userInput.intent === 'News') {
-            const newsItems = await newsSearch(userInput.searchKeyword);
-            const itemNumbers = (newsItems.length > 5) ? 5 : newsItems.length;
-            for (let i = 0; i < itemNumbers; i++) {
-                const newsItem = newsItems[i];
-                const imgUrl = (newsItem.image === undefined) ? '' : newsItem.image.thumbnail.contentUrl;
-                const card = createCard(imgUrl, 
-                    newsItem.description,
-                    newsItem.name,
-                    newsItem.url);
-                await stepContext.context.sendActivity({ attachments: [card] });
+        try {
+            if (process.env.LuisAppId && process.env.LuisAPIKey && process.env.LuisAPIHostName) {
+                // Call LUIS and gather user intents.
+                userInput = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
+                this.logger.log('LUIS extracted these info:', userInput);
             }
-
-            return await stepContext.endDialog();
-        }
-
-        if (userInput.intent === 'Places_FindPlace') {
-            const businesses = await yelpSearch(userInput.searchKeyword);
-            const length = businesses.length;
-
-            if (length === 0) {
-                await stepContext.context.sendActivity({
-                    text: 'Sorry, I can\' find anything.',
-                    attachments: [{
-                        "contentType": 'image/jpg',
-                        "contentUrl": 'https://g5logo.blob.core.windows.net/logo/what_qqq.jpg',
-                        "name": 'What???'
-                    }]
-                });
+    
+            if (userInput.intent === 'News') {
+                const newsItems = await newsSearch(userInput.searchKeyword);
+                const itemNumbers = (newsItems.length > 5) ? 5 : newsItems.length;
+                for (let i = 0; i < itemNumbers; i++) {
+                    const newsItem = newsItems[i];
+                    const imgUrl = (newsItem.image === undefined) ? '' : newsItem.image.thumbnail.contentUrl;
+                    const card = createCard(imgUrl, 
+                        newsItem.description,
+                        newsItem.name,
+                        newsItem.url);
+                    await stepContext.context.sendActivity({ attachments: [card] });
+                }
+    
                 return await stepContext.endDialog();
             }
-
-            for (let i = 0; i < length; i++) {
-                const biz = businesses[i];
-                const bizInfo = biz.rating + ' Stars\n' 
-                    + ((biz.price === undefined) ? '' : biz.price) + '\n'
-                    + biz.location.display_address.join(' ') + '\n'
-                    + biz.display_phone;
-                const card = createCard(biz.image_url, bizInfo, biz.name, biz.url, 'stretch');
-                await stepContext.context.sendActivity({ attachments: [card] });
-            }            
-            await stepContext.context.sendActivity({ text: 'Thank you.' });
-            return await stepContext.endDialog();
+    
+            if (userInput.intent === 'Places_FindPlace') {
+                const businesses = await yelpSearch(userInput.searchKeyword);
+                const length = businesses.length;
+    
+                if (length === 0) {
+                    await stepContext.context.sendActivity({
+                        text: 'Sorry, I can\' find anything.',
+                        attachments: [{
+                            "contentType": 'image/jpg',
+                            "contentUrl": 'https://g5logo.blob.core.windows.net/logo/what_qqq.jpg',
+                            "name": 'What???'
+                        }]
+                    });
+                    return await stepContext.endDialog();
+                }
+    
+                for (let i = 0; i < length; i++) {
+                    const biz = businesses[i];
+                    const bizInfo = biz.rating + ' Stars\n' 
+                        + ((biz.price === undefined) ? '' : biz.price) + '\n'
+                        + biz.location.display_address.join(' ') + '\n'
+                        + biz.display_phone;
+                    const card = createCard(biz.image_url, bizInfo, biz.name, biz.url, 'stretch');
+                    await stepContext.context.sendActivity({ attachments: [card] });
+                }            
+                await stepContext.context.sendActivity({ text: 'Thank you.' });
+                return await stepContext.endDialog();
+            }
+    
+            await stepContext.context.sendActivity({
+                text: 'What are you talking about?',
+                attachments: [{
+                    "contentType": 'image/jpg',
+                    "contentUrl": 'https://g5logo.blob.core.windows.net/logo/what_qqq.jpg',
+                    "name": 'What???'
+                }]
+            });
+            return await stepContext.endDialog();            
+        } catch (error) {
+            console.log(error);    
         }
-
-        await stepContext.context.sendActivity({
-            text: 'What are you talking about?',
-            attachments: [{
-                "contentType": 'image/jpg',
-                "contentUrl": 'https://g5logo.blob.core.windows.net/logo/what_qqq.jpg',
-                "name": 'What???'
-            }]
-        });
         return await stepContext.endDialog();
     }
 }
